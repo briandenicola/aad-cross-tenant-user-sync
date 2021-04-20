@@ -12,8 +12,6 @@ param(
   [string] $region
 )
 
-# Endpoint=sb://sb-5c1a0ea502.servicebus.windows.net/;SharedAccessKeyName=aadaccess-write;SharedAccessKey=m7dE72vYdL+ZGoWQxm81K+6erQOhSSxCjB/SUWk6pFo=
-
 $today = (Get-Date).ToString("yyyyMMdd")
 
 az login --use-device-code
