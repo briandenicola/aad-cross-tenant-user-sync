@@ -68,7 +68,7 @@ $notificationWebhook = "EventHub:{0}secrets/{1}?tenantId={2}" -f $keyVaultUri, $
 $notificationSubscription  = "https://graph.microsoft.com/beta/subscriptions"
 $notificationExpiration = (Get-Date $(Get-Date).AddDays(3).ToUniversalTime() -Format o).ToString()
 
-$body = @"
+$subscriptionBody = @"
 { 
   \"changeType\": \"updated\", 
   \"notificationUrl\": \"$notificationWebhook\", 
@@ -78,10 +78,23 @@ $body = @"
   \"latestSupportedTlsVersion\": \"v1_2\" 
 }
 "@ 
-az rest --method post --uri $notificationSubscription --headers "Content-Type=application/json" --body $body
+az rest --method post --uri $notificationSubscription --headers "Content-Type=application/json" --body $subscriptionBody
 
 #Grant Azure Function access to Graph API
-az ad app permission grant --api '00000003-0000-0000-c000-000000000000' --id $functionAppId --scope "User.Read.All"
+$graphGlobalId = "00000003-0000-0000-c000-000000000000"
+$appRoleId =$(az ad sp show --id $graphGlobalId --query "appRoles[?value=='User.Read'].id" -o tsv)
+$graphSpnId = $(az ad sp show --id $graphGlobalId -o tsv --query "objectId")
+
+$aadAppRoleBody = @"
+{
+  \"principalId\": \"$functionAppId\",
+  \"resourceId\": \"$graphSpnId\",
+  \"appRoleId\": \"$appRoleId\"
+}
+"@
+
+$graphUri = "https://graph.microsoft.com/v1.0/servicePrincipals/{0}/appRoleAssignments" -f $functionAppId
+az rest --method POST --uri $graphUri --headers 'Content-Type=application/json' --body $aadAppRoleBody
 
 # echo Application name
 if($?){

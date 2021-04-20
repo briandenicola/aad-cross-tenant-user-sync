@@ -55,7 +55,20 @@ $sbKeyVaultUri = $(az keyvault secret set --name $sbConnectionString --value $re
 az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --settings servicebus="@Microsoft.KeyVault(SecretUri=$sbKeyVaultUri)"
 
 #Grant Azure Function access to Graph API
-az ad app permission grant --api '00000003-0000-0000-c000-000000000000' --id $functionAppId --scope "User.ReadWrite.All"
+$graphGlobalId = "00000003-0000-0000-c000-000000000000"
+$appRoleId =$(az ad sp show --id $graphGlobalId --query "appRoles[?value=='User.ReadWrite.All'].id" -o tsv)
+$graphSpnId = $(az ad sp show --id $graphGlobalId -o tsv --query "objectId")
+
+$aadAppRoleBody = @"
+{
+  \"principalId\": \"$functionAppId\",
+  \"resourceId\": \"$graphSpnId\",
+  \"appRoleId\": \"$appRoleId\"
+}
+"@
+
+$graphUri = "https://graph.microsoft.com/v1.0/servicePrincipals/{0}/appRoleAssignments" -f $functionAppId
+az rest --method POST --uri $graphUri --headers 'Content-Type=application/json' --body $aadAppRoleBody
 
 # Results Application name
 if($?){
