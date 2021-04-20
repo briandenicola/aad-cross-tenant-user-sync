@@ -16,6 +16,8 @@ namespace parent_tenant
             ILogger log)
         {
             log.LogInformation($"C# ServiceBus queue trigger function processed message: {userToDelete}");
+            //TBD
+            log.LogInformation($"User - - was deleted.");
         }
     }
 }
