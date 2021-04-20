@@ -82,7 +82,7 @@ az rest --method post --uri $notificationSubscription --headers "Content-Type=ap
 
 #Grant Azure Function access to Graph API
 $graphGlobalId = "00000003-0000-0000-c000-000000000000"
-$appRoleId =$(az ad sp show --id $graphGlobalId --query "appRoles[?value=='User.Read'].id" -o tsv)
+$appRoleId =$(az ad sp show --id $graphGlobalId --query "appRoles[?value=='User.Read.All'].id" -o tsv)
 $graphSpnId = $(az ad sp show --id $graphGlobalId -o tsv --query "objectId")
 
 $aadAppRoleBody = @"
