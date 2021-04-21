@@ -1,15 +1,17 @@
 # Azure AD User Account Sync Across Tenants
 
 ## Overview
-Words go here..maybe
+Azure AD has built in federation with other Azure AD tenants but in order for a user in one tenant to utilize resources in another tenanat, they must exist as Guest User Accounts in that Azure AD Tenant.  Azure AD's Graph API has a change notification service that you can subscribe to User Updates and Delete events.  
+
+This repository demostrates how you can utlized the Graph API Change Feed to push user changes in one AAD tenant (Child) to another AAD tenanat (Parent)
 
 ## Design 
 ![Dapr](./assets/design.png)
 
 ## Known Code Limitations
-* I am not handling subscription renewals. Subscription lasts for 3 days to Graph API and must be renewed
-* I am not handling general user updates. I am treating all user updates as creation events for demo purposes only.
-* I am not handling actual deletion of a user in the parent domain. That is an exercise for you.
+* I am not handling subscription renewals. Subscription authorizations lasts for upt to 3 days and must be renewed.
+* I am not handling general user updates. I am treating all user updates as creation events since this is for demostration purposes only.
+* I am not handling actual deletion of a user in the parent domain. I am pushing the even to Service Bus and then loging the event in the Parent AAD tenanat. That is left as an exercise.
 
 # Infrastructure Setup
 
