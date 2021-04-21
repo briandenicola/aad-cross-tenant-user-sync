@@ -40,8 +40,10 @@ $functionAppId=$(az functionapp identity show --name $functionAppName --resource
 $hub="userevents"
 az eventhubs namespace create -g $ResourceGroup -n $eventHubNameSpace -l $region --sku Basic 
 az eventhubs eventhub create -g $ResourceGroup --namespace-name $eventHubNameSpace -n $hub --message-retention 1
-az eventhubs eventhub authorization-rule create --name "aadaccesspolicy" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --rights Send
-$EventHubCnnectionString = $(az eventhubs eventhub authorization-rule keys list --name "aadaccesspolicy" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --query "primaryConnectionString" --output tsv)
+az eventhubs eventhub authorization-rule create --name "aadaccess-write" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --rights Send
+az eventhubs eventhub authorization-rule create --name "aadaccess-read" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --rights Listen
+$EventHubWriteCnnectionString = $(az eventhubs eventhub authorization-rule keys list --name "aadaccess-write" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --query "primaryConnectionString" --output tsv)
+$EventHubReadCnnectionString = $(az eventhubs eventhub authorization-rule keys list --name "aadaccess-read" --eventhub-name $hub --namespace-name $eventHubNameSpace --resource-group $ResourceGroup --query "primaryConnectionString" --output tsv)
 
 # Create Key Vault
 $graphChangeTrackerSpn = $(az ad sp list --display-name 'Microsoft Graph Change Tracking' --query "[].appId" --output tsv)
@@ -52,17 +54,19 @@ az keyvault set-policy --name $keyvaultname --resource-group $ResourceGroup --se
 $keyVaultUri = $(az keyvault show --name $keyVaultName --resource-group $ResourceGroup --query "properties.vaultUri" --output tsv)
 
 #Set secrets
-$ehConnectionString = "eventhub"
+$ehWriterConnectionString = "eventhub"
+$ehReaderConnectionString = "eventhub-reader"
 $sbConnectionString = "servicebus"
-$ehKeyVaultUri = $(az keyvault secret set --name $ehConnectionString --value $EventHubCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
+$ehWriterKeyVaultUri = $(az keyvault secret set --name $ehWriterConnectionString --value $EventHubWriteCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
+$ehReaderKeyVaultUri = $(az keyvault secret set --name $ehReaderConnectionString --value $EventHubReadCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
 $sbKeyVaultUri = $(az keyvault secret set --name $sbConnectionString --value $ServiceBusConnectionString --vault-name $keyVaultName --query 'id' --output tsv)
 
 #Set Function Secrets
-az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --settings eventhub="@Microsoft.KeyVault(SecretUri=$ehKeyVaultUri)"
+az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --settings eventhub="@Microsoft.KeyVault(SecretUri=$ehReaderKeyVaultUri)"
 az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --settings servicebus="@Microsoft.KeyVault(SecretUri=$sbKeyVaultUri)"
 
 #Subscribe to Graph API Change Feed
-$notificationWebhook = "EventHub:{0}secrets/{1}?tenantId={2}" -f $keyVaultUri, $ehConnectionString, $accountInfo.name
+$notificationWebhook = "EventHub:{0}secrets/{1}?tenantId={2}" -f $keyVaultUri, $ehWriterConnectionString, $accountInfo.name
 $notificationSubscription  = "https://graph.microsoft.com/beta/subscriptions"
 $notificationExpiration = (Get-Date $(Get-Date).AddDays(3).ToUniversalTime() -Format o).ToString()
 
