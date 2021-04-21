@@ -72,7 +72,7 @@ $notificationExpiration = (Get-Date $(Get-Date).AddDays(3).ToUniversalTime() -Fo
 
 $subscriptionBody = @"
 { 
-  \"changeType\": \"updated\", 
+  \"changeType\": \"updated,deleted\", 
   \"notificationUrl\": \"$notificationWebhook\", 
   \"resource\": \"Users\", 
   \"expirationDateTime\": \"$notificationExpiration\", 

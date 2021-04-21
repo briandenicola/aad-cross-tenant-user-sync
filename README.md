@@ -9,6 +9,7 @@ Words go here..maybe
 ## Known Code Limitations
 * I am not handling subscription renewals. Subscription lasts for 3 days to Graph API and must be renewed
 * I am not handling general user updates. I am treating all user updates as creation events for demo purposes only.
+* I am not handling actual deletion of a user in the parent domain. That is an exercise for you.
 
 # Infrastructure Setup
 
