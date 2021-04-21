@@ -33,38 +33,49 @@ namespace aad.user.sync
                     string messageBody = Encoding.UTF8.GetString(eventData.Body.Array, eventData.Body.Offset, eventData.Body.Count);
                     log.LogInformation($"C# Event Hub trigger function processed a message: {messageBody}");
                     
-                    var notifications = JsonConvert.DeserializeObject<Notifications>( messageBody );
-                    var userId = notifications.Items[0].ResourceData.Id;
+                    var notification = JsonConvert.DeserializeObject<Notifications>( messageBody ).Items.FirstOrDefault();
+                    var userId = notification.ResourceData.Id;
                     log.LogInformation($"Update Made to User: {userId}");
 
-                    var userDetails = await client.Users[userId]                                        
-                                        .Request()
-                                        .Select( u => new {
-                                            u.Id,
-                                            u.DisplayName,
-                                            u.UserPrincipalName,
-                                            u.CreatedDateTime,
-                                            u.UserType
-                                        })
-                                        .GetAsync();
+                    if( notification.ChangeType == "deleted" ) {
+                        var userToCreate = new AadGuestUser()
+                        {
+                            Id = userId,
+                            DisplayName = String.Empty,
+                            UserPrincipalName = string.Empty
+                        };
 
-                    var userToCreate = new AadGuestUser()
-                    {
-                        Id = userDetails.Id,
-                        DisplayName = userDetails.DisplayName,
-                        UserPrincipalName = userDetails.UserPrincipalName
-                    };
+                        log.LogInformation($"User Id - {userId} - was sent to other tenant to be deleted.");
+                        await usersToDelete.AddAsync(userToCreate);
+                    }
+                    else {
+                        var userDetails = await client.Users[userId]                                        
+                                            .Request()
+                                            .Select( u => new {
+                                                u.Id,
+                                                u.DisplayName,
+                                                u.UserPrincipalName,
+                                                u.CreatedDateTime,
+                                                u.UserType
+                                            })
+                                            .GetAsync();
 
-                    log.LogInformation($"User - {userToCreate.UserPrincipalName} - was sent to other tenant to be created as guest user.");
-                    await usersToCreate.AddAsync(userToCreate);
+                        var userToCreate = new AadGuestUser()
+                        {
+                            Id = userDetails.Id,
+                            DisplayName = userDetails.DisplayName,
+                            UserPrincipalName = userDetails.UserPrincipalName
+                        };
+
+                        log.LogInformation($"User - {userToCreate.UserPrincipalName} - was sent to other tenant to be created as guest user.");
+                        await usersToCreate.AddAsync(userToCreate);
+                    }
                     await Task.Yield();
 
                 }
                 catch(Microsoft.Graph.ClientException ex)
                 {
                     log.LogInformation($"Client Exception: {ex.Error} - {ex.Message}.");
-                    //Handle Delete
-                    //ex.Message == GraphErrorCode.ItemNotFound ?
                 }
                 catch (Exception ex)
                 {
