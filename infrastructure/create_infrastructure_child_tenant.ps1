@@ -49,7 +49,7 @@ $EventHubReadCnnectionString = $(az eventhubs eventhub authorization-rule keys l
 $graphChangeTrackerSpn = $(az ad sp list --display-name 'Microsoft Graph Change Tracking' --query "[].appId" --output tsv)
 
 az keyvault create --name $keyVaultName --resource-group $ResourceGroup --location $region
-az keyvault set-policy --name $keyVaultName --object-id $functionAppId --secret-permissions get  --output none
+az keyvault set-policy --name $keyVaultName --resource-group $ResourceGroup --secret-permissions get --object-id $functionAppId --output none
 az keyvault set-policy --name $keyvaultname --resource-group $ResourceGroup --secret-permissions get --spn $graphChangeTrackerSpn --output none
 $keyVaultUri = $(az keyvault show --name $keyVaultName --resource-group $ResourceGroup --query "properties.vaultUri" --output tsv)
 
@@ -57,7 +57,8 @@ $keyVaultUri = $(az keyvault show --name $keyVaultName --resource-group $Resourc
 $ehWriterConnectionString = "eventhub"
 $ehReaderConnectionString = "eventhub-reader"
 $sbConnectionString = "servicebus"
-$ehWriterKeyVaultUri = $(az keyvault secret set --name $ehWriterConnectionString --value $EventHubWriteCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
+
+$null = $(az keyvault secret set --name $ehWriterConnectionString --value $EventHubWriteCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
 $ehReaderKeyVaultUri = $(az keyvault secret set --name $ehReaderConnectionString --value $EventHubReadCnnectionString --vault-name $keyVaultName --query 'id' --output tsv)
 $sbKeyVaultUri = $(az keyvault secret set --name $sbConnectionString --value $ServiceBusConnectionString --vault-name $keyVaultName --query 'id' --output tsv)
 
@@ -66,7 +67,7 @@ az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --se
 az functionapp config appsettings set -g $ResourceGroup -n $functionAppName --settings servicebus="@Microsoft.KeyVault(SecretUri=$sbKeyVaultUri)"
 
 #Subscribe to Graph API Change Feed
-$notificationWebhook = "EventHub:{0}secrets/{1}?tenantId={2}" -f $keyVaultUri, $ehWriterConnectionString, $accountInfo.name
+$notificationWebhook = "EventHub:{0}secrets/{1}?tenantId={2}" -f $keyVaultUri, $ehWriterConnectionString, $accountInfo.homeTenantId
 $notificationSubscription  = "https://graph.microsoft.com/beta/subscriptions"
 $notificationExpiration = (Get-Date $(Get-Date).AddDays(3).ToUniversalTime() -Format o).ToString()
 
