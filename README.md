@@ -9,9 +9,8 @@ This repository demostrates how you can utlized the Graph API Change Feed to pus
 ![Dapr](./assets/design.png)
 
 ## Known Code Limitations
-* I am not handling subscription renewals. Subscription authorizations lasts for upt to 3 days and must be renewed.
 * I am not handling general user updates. I am treating all user updates as creation events since this is for demostration purposes only.
-* I am not handling actual deletion of a user in the parent domain. I am pushing the even to Service Bus and then loging the event in the Parent AAD tenanat. That is left as an exercise.
+* I am not actually deleting the user in the parent domain. I am pushing the deletion event to Service Bus and then loging the event in the Parent AAD tenanat. That is left as an exercise.
 
 # Infrastructure Setup
 
